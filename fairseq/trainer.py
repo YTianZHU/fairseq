@@ -932,6 +932,8 @@ class Trainer(object):
                 grad_norm = self.clip_grad_norm(self.cfg.optimization.clip_norm)
 
             if self.writer is not None and torch.isfinite(grad_norm).all():
+                import pdb
+                pdb.set_trace()
                 for n, p in self.model.named_parameters():
                     if (p.requires_grad):
                         # self.writer.add_histogram("grad/{}".format(name), p.grad.float() * (float(args.update_freq[0]) / _acc_norm / _cur_scale), global_step)
@@ -953,6 +955,8 @@ class Trainer(object):
                 print('gradient histogram in tensorboard')
             else:
                 print('isfinite', torch.isfinite(grad_norm).all())
+                import time
+                time.sleep(10000)
 
             # check that grad norms are consistent across workers
             # on tpu check tensor is slow
