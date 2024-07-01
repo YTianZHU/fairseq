@@ -932,8 +932,8 @@ class Trainer(object):
                 grad_norm = self.clip_grad_norm(self.cfg.optimization.clip_norm)
 
             if self.writer is not None and torch.isfinite(grad_norm).all():
-                import pdb
-                pdb.set_trace()
+                # import pdb
+                # pdb.set_trace()
                 for n, p in self.model.named_parameters():
                     if (p.requires_grad):
                         # self.writer.add_histogram("grad/{}".format(name), p.grad.float() * (float(args.update_freq[0]) / _acc_norm / _cur_scale), global_step)
@@ -946,17 +946,24 @@ class Trainer(object):
                         #         "grad_layer/{}".format(module_name), p.grad.float(), int(layer_idx))
                         
                         # for normal 
-                        if n.startswith('decoder.layers.'):
+                        # if n.startswith('decoder.layers.'):
+                        #     layer_idx, module_name = n[len(
+                        #         'decoder.layers.'):].split('.', 1)
+                        #     self.writer.add_histogram(
+                        #         "grad_layer/{}".format(module_name), p.grad.float(), int(layer_idx))
+                        
+                        # for zero
+                        if n.startswith('module.module.decoder.layers.'):
                             layer_idx, module_name = n[len(
-                                'decoder.layers.'):].split('.', 1)
+                                'module.module.decoder.layers.'):].split('.', 1)
                             self.writer.add_histogram(
                                 "grad_layer/{}".format(module_name), p.grad.float(), int(layer_idx))
                 self.writer.flush()
                 print('gradient histogram in tensorboard')
             else:
+            #     import time
+            #     time.sleep(10000)
                 print('isfinite', torch.isfinite(grad_norm).all())
-                import time
-                time.sleep(10000)
 
             # check that grad norms are consistent across workers
             # on tpu check tensor is slow
