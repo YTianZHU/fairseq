@@ -27,6 +27,8 @@ from fairseq.optim import lr_scheduler
 from torchscale.component.xmoe.global_groups import get_moe_group, _find_my_group_index
 import torch.distributed as dist
 
+from tensorboardX import SummaryWriter
+
 from omegaconf import OmegaConf
 import re
 
@@ -191,6 +193,10 @@ class Trainer(object):
         self._start_time = time.time()
         self._previous_training_time = 0
         self._cumulative_training_time = None
+
+        self.writer = None
+        if self.is_data_parallel_master and torch.cuda.current_device() == 0:
+            self.writer = SummaryWriter("/mnt/tianzhu/draft/sm2_3b_4k_grad")  # for tensorboardX
 
     def reinitialize(self):
         """Reinitialize the Trainer, typically after model params change."""
@@ -924,6 +930,29 @@ class Trainer(object):
             with torch.autograd.profiler.record_function("clip-grads"):
                 # clip grads
                 grad_norm = self.clip_grad_norm(self.cfg.optimization.clip_norm)
+
+            if self.writer is not None and torch.isfinite(grad_norm).all():
+                for n, p in self.model.named_parameters():
+                    if (p.requires_grad):
+                        # self.writer.add_histogram("grad/{}".format(name), p.grad.float() * (float(args.update_freq[0]) / _acc_norm / _cur_scale), global_step)
+                        
+                        # for mistral ft
+                        # if n.startswith('decoder.model.layers.'):
+                        #     layer_idx, module_name = n[len(
+                        #         'decoder.model.layers.'):].split('.', 1)
+                        #     self.writer.add_histogram(
+                        #         "grad_layer/{}".format(module_name), p.grad.float(), int(layer_idx))
+                        
+                        # for normal 
+                        if n.startswith('decoder.layers.'):
+                            layer_idx, module_name = n[len(
+                                'decoder.layers.'):].split('.', 1)
+                            self.writer.add_histogram(
+                                "grad_layer/{}".format(module_name), p.grad.float(), int(layer_idx))
+                self.writer.flush()
+                print('gradient histogram in tensorboard')
+            else:
+                print('isfinite', torch.isfinite(grad_norm).all())
 
             # check that grad norms are consistent across workers
             # on tpu check tensor is slow
