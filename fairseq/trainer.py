@@ -197,6 +197,7 @@ class Trainer(object):
         self.writer = None
         if self.is_data_parallel_master and torch.cuda.current_device() == 0:
             self.writer = SummaryWriter("/mnt/tianzhu/draft/sm2_3b_4k_grad")  # for tensorboardX
+            self.grad_dict = {}
 
     def reinitialize(self):
         """Reinitialize the Trainer, typically after model params change."""
@@ -956,8 +957,13 @@ class Trainer(object):
                         if n.startswith('module.module.decoder.layers.'):
                             layer_idx, module_name = n[len(
                                 'module.module.decoder.layers.'):].split('.', 1)
+                            full_name = module_name + layer_idx
+                            if full_name not in self.grad_dict:
+                                self.grad_dict[full_name] = p.grad.float().reshape(1, -1)
+                            else:
+                                self.grad_dict[full_name] = torch.cat([self.grad_dict[full_name], p.grad.float().reshape(1, -1)], dim=0)
                             self.writer.add_histogram(
-                                "grad_layer/{}".format(module_name), p.grad.float(), int(layer_idx))
+                                "grad_layer/{}".format(module_name), self.grad_dict[full_name], int(layer_idx))
                 self.writer.flush()
                 print('gradient histogram in tensorboard')
             else:
