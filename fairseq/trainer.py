@@ -196,7 +196,7 @@ class Trainer(object):
 
         self.writer = None
         if self.is_data_parallel_master and torch.cuda.current_device() == 0:
-            self.writer = SummaryWriter("/mnt/tianzhu/draft/sm2_3b_4k_grad")  # for tensorboardX
+            self.writer = SummaryWriter("/mnt/tianzhu/draft/sm2_13b_grad")  # for tensorboardX
             self.grad_dict = {}
             self.grad_step = 0
 
