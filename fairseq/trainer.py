@@ -996,13 +996,13 @@ class Trainer(object):
         def normalize_weights():
             for n, p in self.model.named_parameters():
                 if n.startswith('decoder.embed_tokens') or n.startswith('decoder.output_projection'):
-                    self.model[n].weight.data.copy_(justnorm(p, 1))
+                    p.data.copy_(justnorm(p, 1))
                 elif n.startswith('decoder.layers.'):
                     if 'q_proj' in n or 'k_proj' in n or 'v_proj' in n \
                         or 'fc1' in n or 'gate' in n:
-                        self.model[n].weight.data.copy_(justnorm(p, 1))
+                        p.data.copy_(justnorm(p, 1))
                     elif 'out_proj' in n or 'fc2' in n:
-                        self.model[n].weight.data.copy_(justnorm(p, 0))
+                        p.data.copy_(justnorm(p, 0))
 
         normalize_weights()
         
