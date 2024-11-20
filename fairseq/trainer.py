@@ -986,6 +986,26 @@ class Trainer(object):
                     self.optimizer.optimizer
                 )
 
+        
+        def justnorm(x, idim=-1):
+            dtype = x.dtype
+            x = x.float()
+            res = (x / x.norm(p=2, dim=idim, keepdim=True)).to(dtype=dtype) 
+            return res
+
+        def normalize_weights():
+            for n, p in self.model.named_parameters():
+                if n.startswith('decoder.embed_tokens') or n.startswith('decoder.output_projection'):
+                    self.model[n].weight.data.copy_(justnorm(p, 1))
+                elif n.startswith('decoder.layers.'):
+                    if 'q_proj' in n or 'k_proj' in n or 'v_proj' in n \
+                        or 'fc1' in n or 'gate' in n:
+                        self.model[n].weight.data.copy_(justnorm(p, 1))
+                    elif 'out_proj' in n or 'fc2' in n:
+                        self.model[n].weight.data.copy_(justnorm(p, 0))
+
+        normalize_weights()
+        
         logging_output = None
         if not overflow or self.cfg.distributed_training.ddp_backend == "slow_mo":
             self.set_num_updates(self.get_num_updates() + 1)
